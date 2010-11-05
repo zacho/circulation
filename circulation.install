@@ -1,0 +1,68 @@
+<?php
+// $Id$
+/* 
+ * @file
+ * circulation.install,v 0.1.0.0 2008/07/21 12:57:49 unconed Exp 
+*/
+/**
+ * Implementation of hook_install().
+ *
+ * Implementing Schema API for Drupal 6.x
+ */
+function circulation_schema() {
+  // specification for circulation
+  $schema['circulation'] = array(
+	'description' => t('Allows item nodes to be checked out to users.'),	
+	'fields' => array(
+	  'cid' => array(
+	    'type' => 'serial',
+	    'length' => '10',
+	    'unsigned' => TRUE,
+	    'not null' => TRUE),
+	  'uid' => array(
+	    'type' => 'int',
+	    'length' => '10',
+	    'unsigned' => TRUE,
+	    'not null' => TRUE),
+	  'nid' => array(
+	    'type' => 'int',
+	    'length' => '10',
+	    'unsigned' => TRUE,
+	    'not null' => TRUE),
+	  'checkout' => array(
+	    'type' => 'int',
+	    'length' => '11',
+	    'unsigned' => TRUE,
+	    'not null' => TRUE,
+	    'default' => 0),
+	  'due' => array(
+	    'type' => 'int',
+	    'length' => '11',
+	    'unsigned' => TRUE,
+	    'not null' => TRUE,
+	    'default' => 0),
+	  'checkin' => array(
+	    'type' => 'int',
+	    'length' => '11',
+	    'unsigned' => TRUE,
+	    'default' => null),
+	),
+	'primary key' => array('cid'),
+	'unique keys' => array(
+	  'uid_nid_checkin_due' => array('uid','nid','due','checkin'),
+	),
+	'indexes' => array(
+	  'checkout' => array('checkout'),
+	),
+  );
+  return $schema;
+}
+function circulation_install() {
+  // Create my tables.
+  drupal_install_schema('circulation');
+}
+
+function circulation_uninstall() {
+  // Drop my tables.
+  drupal_uninstall_schema('circulation');
+}
