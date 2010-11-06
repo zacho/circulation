@@ -79,7 +79,7 @@ function circulation_menu() {
   $items['circulation/checkout'] = array(
      'title' => 'Check Out',
      'page callback' => 'circulation_checkout', 
-     'access arguments' => array('access circulation')
+     'access arguments' => array('access circulation'),
      'type' => MENU_NORMAL_ITEM,
   );
 
