@@ -1,5 +1,6 @@
 ; $Id$
 name = Circulation
 description = Allows nodes to be checked-out by users
+dependencies[] = nodereference
 core = 6.x
-
+version = 6.x-dev

@@ -46,13 +46,20 @@ function circulation_menu() {
   $items = array();
 	
   $items['admin/settings/circulation'] = array(
-    'title' => 'Circulation settings',
-    'description' => 'Change how Circulation functions',
+    'title' => t('Circulation settings'),
+    'description' => t('Change how Circulation functions'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('circulation_settings', 2),
-    // NOTE: as of Drupal 6.2, all menu items are *required* to have
-    // access control.
+    'page arguments' => array('circulation_settings'),
     'access arguments' => array('administer site configuration'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  
+  $items['circulation'] = array(
+    'title' => t('Circulation'),
+    'description' => t('Current loan status'),
+    'page callback' => 'circulation_loan_list',
+    'access arguments' => array('access circulation'),
+    'type' => MENU_NORMAL_ITEM,
   );
 
   $items['circulation/history'] = array(
@@ -66,13 +73,14 @@ function circulation_menu() {
      'title' => 'Check In',
      'page callback' => 'circulation_checkin', 
      'access arguments' => array('access circulation'), 
-     'type' => MENU_CALLBACK,
+     'type' => MENU_NORMAL_ITEM,
   );
 
   $items['circulation/checkout'] = array(
      'title' => 'Check Out',
      'page callback' => 'circulation_checkout', 
      'access arguments' => array('access circulation')
+     'type' => MENU_NORMAL_ITEM,
   );
 
   $items['circulation/userholdings'] = array(
@@ -514,8 +522,8 @@ function circulation_history($nid = NULL) {
 /*
  * function that makes output for when /circulation or /circulation/[nid] is requested
  */
-//function circulation_hello($arg1 = null, $arg2 = null, $arg3 = null, $arg4 = null) {
-function circulation_hello() {
+//function circulation_loan_list($arg1 = null, $arg2 = null, $arg3 = null, $arg4 = null) {
+function circulation_loan_list() {
 
   $nid = NULL;
   
