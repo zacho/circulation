@@ -73,7 +73,7 @@ function circulation_menu() {
      'title' => 'Check In',
      'page callback' => 'circulation_checkin', 
      'access arguments' => array('access circulation'), 
-     'type' => MENU_NORMAL_ITEM,
+     'type' => MENU_CALLBACK,
   );
 
   $items['circulation/checkout'] = array(
