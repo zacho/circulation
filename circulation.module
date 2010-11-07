@@ -570,34 +570,31 @@ function circulation_loan_list() {
 /**
  * Retrieve a pipe delimited string of autocomplete suggestions for circulating items
  */
-function itemcode_autocomplete($string = '') {
+function circulation_itemcode_autocomplete($string = '') {
   $matches = array();
   $item_biblioref = variable_get('circulation_item_recordreference', NULL) ."_nid";
   if ($string) {
-    $result = db_query_range("SELECT n.title, z.title as ztitle FROM {node} n INNER JOIN content_type_%s c ON n.nid=c.nid LEFT JOIN {node} z on c.%s=z.nid WHERE n.`type` = '%s' AND (LOWER(n.title) LIKE LOWER('%%%s%%') OR LOWER(z.title) LIKE LOWER('%%%s%%'))", CIRCULATION_ITEMTYPE, $item_biblioref,  CIRCULATION_ITEMTYPE, $string, $string, 0, 15);
-    //$result = db_query_range("SELECT title,nid FROM {node} WHERE `type` = '%s' AND LOWER(title) LIKE LOWER('%%%s%%')", CIRCULATION_ITEMTYPE, $string, 0, 10);
+    $result = db_query_range("SELECT n.title, z.title as ztitle FROM {node} n INNER JOIN {content_type_%s} c ON n.`nid`=c.`nid` LEFT JOIN {node} z ON c.%s=z.`nid` WHERE n.`type` = '%s' AND (LOWER(n.`title`) LIKE LOWER('%%%s%%') OR LOWER(z.`title`) LIKE LOWER('%%%s%%'))", CIRCULATION_ITEMTYPE, $item_biblioref, CIRCULATION_ITEMTYPE, $string, $string, 0, 15);
     while ($item = db_fetch_object($result)) {
-      $matches[$item->title] = check_plain($item->title ." -- ". $item->ztitle);
+      $matches[$item->title] = check_plain($item->title .' ('. $item->ztitle . ')');
     }
   }
-  print drupal_to_js($matches);
-  exit();
+  print drupal_json($matches);
 }
 
 /**
  * Retrieve a pipe delimited string of autocomplete suggestions for existing users
  */
-function user_betterautocomplete($string = '') {
+function circulation_userautocomplete($string = '') {
   $matches = array();
   if ($string) {
-    $result = db_query_range("SELECT name, uid FROM {users} WHERE LOWER(name) LIKE LOWER('%%%s%%')", $string, 0, 10);
+    $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%s%%')", $string, 0, 10);
     while ($user = db_fetch_object($result)) {
-      $matches[$user->name ." [uid:". $user->uid ."]"] = check_plain($user->name);
-      //$matches[$user->name] = check_plain($user->name ." (". $user->$field_firstname ." ". $user->$field_lastname .")");
+      $matches[$user->name] = check_plain($user->name);
     }
   }
-  print drupal_to_js($matches);
-  exit();
+
+  drupal_json($matches);
 }
 
 
