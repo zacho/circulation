@@ -363,7 +363,7 @@ function circulation_checkout($nid=0, $uid=0, $confirm=0) {
     $output .= drupal_get_form('checkout_user_form');
 
   }
-  drupal_set_title(t('Circulation | Check Out'));
+  drupal_set_title(t('Check Out Item'));
   return $output;
 }
 
@@ -505,7 +505,7 @@ function circulation_history($nid = NULL) {
                     '<span class=\'date\'>'. date('j-M-y', $sqresultrow->checkout) .'</span>',
                     '<span class=\'date\'>'. date('j-M-y', $sqresultrow->due) .'</span>',
       );
-      drupal_set_title(t('Circulation | Item History | '. $itemcode));
+      drupal_set_title(t('Item Circulation History: '. $itemcode));
       if ($sqresultrow->checkin) {
         $rows[$count][] = date('j M Y', $sqresultrow->checkin);
       } 
