@@ -246,18 +246,18 @@ function circulation_node_form($node) {
  *
  * Provides signature customization for the user's comments.
  */
-function circulation_user($type, $edit, &$account, $category = NULL) {
+function circulation_user($op, $edit, &$account, $category = NULL) {
 /*
-  if ($type == 'view') {
+  if ($op == 'view') {
     $account->content['circulation_form'] = array(
       '#value' => drupal_get_form('circulation_user_form',$account),
       '#weight' => 20,
     );
-    print_r($type);
+    print_r($op);
   }
 */
 
-  if ($type == 'view') {
+  if ($op == 'view') {
   global $user;
     $access = ($user->uid == $account->uid OR user_access('access circulation'));
     if ($user->uid && $access) {
