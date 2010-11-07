@@ -282,33 +282,33 @@ function circulation_user($op, $edit, &$account, $category = NULL) {
 
 
 
-function circ_go_home($message, $url = "circulation") {
+function _circulation_go_home($message, $url = "circulation") {
   drupal_set_message($message);
   drupal_goto($url);
 }
 
-function circ_count_by_nid($nid) {
+function _circulation_count_by_nid($nid) {
   return db_result(db_query("SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid));
 }
 
 function circulation_checkin($nid, $confirm = NULL) {
   
   if (!$nid OR !is_numeric($nid)) {
-    circ_go_home(t('Node ID not supplied or invalid.'));
+    _circulation_go_home(t('Node ID not supplied or invalid.'));
     break;
   }
 
   if ($confirm != 'confirm') {
 
     // Verify nid, generate confirm URL and form.
-    $count = circ_count_by_nid($nid);
+    $count = _circulation_count_by_nid($nid);
     if ($count > 0) {
-      drupal_set_title(t('Circulation | Check In | Confirm'));
+      drupal_set_title(t('Confirm Check-in'));
       return "You want to set item ". get_node_title($nid) ." (". get_node_title(get_item_parent($nid)) .") as returned, Correct?  " .
              l('Proceed', 'circulation/checkin/'. $nid ."/confirm", array('title' => t('Proceed with item check-in'), 'class' => 'fake-btn'));
     } 
     else {
-      circ_go_home(t('Node @nid (@name) cannot be checked in because it is not checked out.', array('@nid' => $nid, '@name' => get_node_title($nid))));
+      _circulation_go_home(t('Node @nid (@name) cannot be checked in because it is not checked out.', array('@nid' => $nid, '@name' => get_node_title($nid))));
     }
     
   }
@@ -317,11 +317,11 @@ function circulation_checkin($nid, $confirm = NULL) {
     $checkinsql = "UPDATE {circulation} SET `checkin` = '%s' WHERE `nid` = %d AND `checkin` IS NULL";
     if (db_query($checkinsql, date("U"), $nid)) {
       //SUCCESS
-      circ_go_home(t('Item successfully checked-in.'), 'node/'. $nid);
+      _circulation_go_home(t('Item successfully checked-in.'), 'node/'. $nid);
     }
     else {
       //FAILURE
-      circ_go_home(t('Database UPDATE command failed.'), 'node/'. $nid);
+      _circulation_go_home(t('Database UPDATE command failed.'), 'node/'. $nid);
     }
   }
   
@@ -440,11 +440,11 @@ function checkout_user_form_submit($form, &$form_state) {
   if (is_numeric($uid) AND is_numeric($nid)) {
     if (db_query("INSERT INTO {circulation} (uid, nid, checkout, due) VALUES ('%s', '%s', '%s', '%s')",
         $uid, $nid, date("U"), date("U", mktime(0, 0, 0, date("m"), date("d")+variable_get('circulation_loanperiod', $loan_period), date("Y"))))) {
-      circ_go_home(t('Successfully issued item <i>%code</i> (nid:%nid) to user <i>%name</i> (uid:%uid)',
+      _circulation_go_home(t('Successfully issued item <i>%code</i> (nid:%nid) to user <i>%name</i> (uid:%uid)',
       array('%code' => $form_state['values']['item_code'], '%name' => $form_state['values']['user_name'], '%nid' => $nid, '%uid' => $uid)));
     }
   }
-  circ_go_home(t('You would issue item <i>%code</i> to user <i>%name</i>', array('%code' => $form_state['values']['item_code'], '%name' => $form_state['values']['user_name'])));
+  _circulation_go_home(t('You would issue item <i>%code</i> to user <i>%name</i>', array('%code' => $form_state['values']['item_code'], '%name' => $form_state['values']['user_name'])));
 }
 
 function circulation_userholdings($uid = NULL) {
