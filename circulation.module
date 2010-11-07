@@ -90,16 +90,16 @@ function circulation_menu() {
      'type' => MENU_CALLBACK,
   );
 
-  $items['user/betterautocomplete'] = array(
-     'title' => 'Better user autocomplete',
-     'page callback' => 'user_betterautocomplete', 
-     'access arguments' => array('access user profiles'), 
-     'type' => MENU_CALLBACK,
-  );
+  // $items['user/betterautocomplete'] = array(
+  //    'title' => 'Better user autocomplete',
+  //    'page callback' => 'circulation_userautocomplete', 
+  //    'access arguments' => array('access user profiles'), 
+  //    'type' => MENU_CALLBACK,
+  // );
 
   $items['circulation/itemcodeautocomplete'] = array(
      'title' => 'Item code autocomplete',
-     'page callback' => 'itemcode_autocomplete', 
+     'page callback' => 'circulation_itemcode_autocomplete', 
      'access arguments' => array('access circulation'), 
      'type' => MENU_CALLBACK,
   );
@@ -372,7 +372,8 @@ function checkout_user_form($args = array()) {
     '#title' => t('Borrower Username'),
     '#type' => 'textfield',
     '#description' => t('Enter the borrower\'s username.'),
-    '#autocomplete_path' => 'user/betterautocomplete'
+    '#autocomplete_path' => 'user/autocomplete',
+    '#size' => 60,
   );
   if (isset($args['uid'])) {
     $uname = get_user_name($args['uid']);
