@@ -115,15 +115,7 @@ function circulation_menu() {
 function circulation_settings() {
 
   $form = array();
-/*
-  $form['circulation_recordtypes'] = array(
-    '#type' => 'checkboxes',
-    '#title' => t('These node types correspond to bibliographic records'),
-    '#options' => node_get_types('names'),
-    '#default_value' => variable_get('circulation_recordtypes', array('zine-item')),
-    '#description' => t('Individual copies of these node types will be able to be borrowed by users.  Note that node types here must have associated individual items in another content type.'),
-  );
-*/
+
   $form['circulation_itemtype'] = array(
     '#type' => 'radios',
     '#title' => t('Borrowable Content Types'),
