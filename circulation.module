@@ -377,7 +377,8 @@ function checkout_user_form($args = array()) {
     '#title' => t('Item to be Loaned'),
     '#type' => 'textfield',
     '#description' => t('Enter the code (e.g. EDU 1234) of the item being loaned.'),
-    '#autocomplete_path' => 'circulation/itemcodeautocomplete'
+    '#autocomplete_path' => 'circulation/itemcodeautocomplete',
+    '#size' => 60,
   );
   if (isset($args['nid'])) {
     $icode = db_result(db_query("SELECT title FROM {node} WHERE `type` = '%s' AND `nid` = '%s'",  CIRCULATION_ITEMTYPE, $args['nid']));
