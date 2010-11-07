@@ -672,6 +672,7 @@ function get_item_nid_from_title($title) {
  * Returns a database query result $result or null if no user id is supplied.
  *  (If a bad user id is supplied, $result will simply contain an empty database result.
  */
+/*
 function get_circ_user($uid) {
   if (is_numeric($uid)) {
     $query = "SELECT * FROM {circulation} WHERE `uid` = '%d' `checkin` IS NULL";
@@ -682,12 +683,14 @@ function get_circ_user($uid) {
     return NULL;
   }
 }
+*/
 
 /*
  * Function to retrieve the current circulation status of a single drupal node (item)
  * 
  * Returns 
  */
+/*
 function get_circ_item($nid) {
   if (is_numeric($nid)) {
     // Query limited to a single result, the most recent result.
@@ -706,6 +709,7 @@ function get_circ_item($nid) {
     return NULL;
   }
 }
+*/
 
 /*
 function circulation_user_form_table(&$form) {
