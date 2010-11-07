@@ -46,7 +46,7 @@ function circulation_menu() {
   $items = array();
 	
   $items['admin/settings/circulation'] = array(
-    'title' => t('Circulation settings'),
+    'title' => t('Circulation'),
     'description' => t('Change how Circulation functions'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('circulation_settings'),
