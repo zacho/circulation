@@ -12,48 +12,54 @@
 function circulation_schema() {
   // specification for circulation
   $schema['circulation'] = array(
-	'description' => t('Allows item nodes to be checked out to users.'),	
-	'fields' => array(
-	  'cid' => array(
-	    'type' => 'serial',
-	    'description' => 'The primary identifier for the Circulation table',
-	    'unsigned' => TRUE,
-	    'not null' => TRUE),
-	  'uid' => array(
-	    'type' => 'int',
-	    'description' => 'User ID',
-	    'unsigned' => TRUE,
-	    'not null' => TRUE),
-	  'nid' => array(
-	    'type' => 'int',
-      'description' => 'Node ID',
-	    'unsigned' => TRUE,
-	    'not null' => TRUE),
-	  'checkout' => array(
-	    'type' => 'int',
-      'description' => 'Checkout date as Unix TIMESTAMP',
-	    'unsigned' => TRUE,
-	    'not null' => TRUE,
-	    'default' => 0),
-	  'due' => array(
-	    'type' => 'int',
-      'description' => 'Due date as Unix TIMESTAMP',
-	    'unsigned' => TRUE,
-	    'not null' => TRUE,
-	    'default' => 0),
-	  'checkin' => array(
-	    'type' => 'int',
-      'description' => 'Checked-in date as Unix TIMESTAMP (null until returned)',
-	    'unsigned' => TRUE,
-	    'default' => null),
-	),
-	'primary key' => array('cid'),
-	'unique keys' => array(
-	  'uid_nid_checkin_due' => array('uid','nid','due','checkin'),
-	),
-	'indexes' => array(
-	  'checkout' => array('checkout'),
-	),
+    'description' => t('Allows item nodes to be checked out to users.'),    
+    'fields' => array(
+      'cid' => array(
+        'type' => 'serial',
+        'description' => t('The primary identifier for the Circulation table'),
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'description' => t('User ID'),
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'nid' => array(
+        'type' => 'int',
+        'description' => t('Node ID'),
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'checkout' => array(
+        'type' => 'int',
+        'description' => t('Checkout date as Unix TIMESTAMP'),
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'due' => array(
+        'type' => 'int',
+        'description' => t('Due date as Unix TIMESTAMP'),
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'checkin' => array(
+        'type' => 'int',
+        'description' => t('Checked-in date as Unix TIMESTAMP (null until returned)'),
+        'unsigned' => TRUE,
+        'default' => null,
+      ),
+    ),
+    'primary key' => array('cid'),
+    'unique keys' => array(
+      'uid_nid_checkin_due' => array('uid','nid','due','checkin'),
+    ),
+    'indexes' => array(
+      'checkout' => array('checkout'),
+    ),
   );
   return $schema;
 }
