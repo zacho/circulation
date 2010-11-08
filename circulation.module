@@ -90,14 +90,14 @@ function circulation_menu() {
      'type' => MENU_CALLBACK,
   );
 
-  // $items['user/betterautocomplete'] = array(
-  //    'title' => 'Better user autocomplete',
-  //    'page callback' => 'circulation_userautocomplete', 
-  //    'access arguments' => array('access user profiles'), 
-  //    'type' => MENU_CALLBACK,
-  // );
+  $items['circulation/user_autocomplete'] = array(
+     'title' => 'Better user autocomplete',
+     'page callback' => 'circulation_user_autocomplete', 
+     'access arguments' => array('access user profiles'), 
+     'type' => MENU_CALLBACK,
+  );
 
-  $items['circulation/itemcodeautocomplete'] = array(
+  $items['circulation/itemcode_autocomplete'] = array(
      'title' => 'Item code autocomplete',
      'page callback' => 'circulation_itemcode_autocomplete', 
      'access arguments' => array('access circulation'), 
@@ -585,12 +585,20 @@ function circulation_itemcode_autocomplete($string = '') {
 /**
  * Retrieve a pipe delimited string of autocomplete suggestions for existing users
  */
-function circulation_userautocomplete($string = '') {
+function circulation_user_autocomplete($string = '') {
   $matches = array();
   if ($string) {
-    $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%s%%')", $string, 0, 10);
-    while ($user = db_fetch_object($result)) {
-      $matches[$user->name] = check_plain($user->name);
+    $profile_names = variable_get('circulation_profile_names',null);
+    if (module_exists('profile') && !empty($profile_names)) {
+      $result = db_query_range("SELECT u.`name`, p.`value` FROM {users} u LEFT JOIN {profile_values} p ON u.`uid` = p.`uid` WHERE LOWER( u.`name` ) LIKE LOWER('%%%s%%') OR LOWER( p.`value` ) LIKE LOWER('%%%s%%')", $string, $string, 0, 10);
+      while ($user = db_fetch_object($result)) {
+	    $matches[$user->name] = check_plain($user->name . ' (' . $user->value . ')' );
+      }
+    } else {
+      $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%%%s%%')", $string, 0, 10);
+      while ($user = db_fetch_object($result)) {
+        $matches[$user->name] = check_plain($user->name);
+      }
     }
   }
 
