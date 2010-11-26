@@ -17,8 +17,22 @@ Premises:
 This module was built to support the the lending of zines at the Anchor Archive Regional Zine Project (a zine library in Halifax, NS).
 
 
+Installation
+------------
+
+1.  Copy the module to your <site>/modules directory and enable as usual.
+2.  Visit your permissions page and set 'access circulation' and 'administer circulation' permissions.
+3.  Before you're able to use the module you'll need to visit admin/settings/circulation and:
+3.1.  Set and save a borrowable content type.  (Currently the module supports only one).
+3.2.  Set and save a cck nodereference field which links your borrowable item records to a 
+      bibliographic record. 
+3.3.  (Optionally, you may also set one or more Profile fields which correspond to user names.  
+       This makes it a bit easier to use the autocomplete function to fill out usernames
+       when checking out items.)
+
+
 Authors
------------
+-------
 
 A 5.x version of the module was built by Zachary Howarth-Schueler.
 A 6.x port was created by Chris Ritzo at the Champaign-Urbana IMC.
