@@ -543,10 +543,29 @@ function checkout_user_form_submit($form, &$form_state) {
   $loan_period = variable_get('circulation_loanperiod', 14);
   if (is_numeric($uid) AND is_numeric($nid)) {
     if (db_query("INSERT INTO {circulation} (uid, nid, checkout, due) VALUES ('%s', '%s', '%s', '%s')",
-        $uid, $nid, date("U"), date("U", mktime(0, 0, 0, date("m"), date("d")+variable_get('circulation_loanperiod', $loan_period), date("Y"))))) {
-      _circulation_go_home(t('Successfully issued item <i>%code</i> to user <i>%name</i>',
-        array('%code' => $form_state['values']['item_code'], '%name' => $form_state['values']['user_name'], '%nid' => $nid, '%uid' => $uid)),
-        "user/$uid");
+        $uid, 
+        $nid, 
+        date("U"), 
+        date(
+          "U", 
+          mktime( 
+            // Midnight:
+            0, // hour
+            0, // minute
+            0, // second
+            date("m"), // this month
+            date("d")+variable_get('circulation_loanperiod', $loan_period),  // this day plus the loan period
+            date("Y") // this year
+          ))))
+      { // if query successful, then:
+        _circulation_go_home(
+          t('Successfully issued item <i>%code</i> to user <i>%name</i>',array(
+            '%code' => $form_state['values']['item_code'], 
+            '%name' => $form_state['values']['user_name'], 
+            '%nid' => $nid, 
+            '%uid' => $uid)
+          ),
+          "user/$uid");
     }
   }
   _circulation_go_home(t('You would issue item <i>%code</i> to user <i>%name</i>', array('%code' => $form_state['values']['item_code'], '%name' => $form_state['values']['user_name'])));
