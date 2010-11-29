@@ -321,13 +321,23 @@ function circulation_node_form($form_state, $nid) {
   );
 
   $form['circulation']['history'] = array(
-    '#value' => l(t('Item History'), 'circulation/history/'. $nid, array('title' => t('View the circulation history of this item'), 'class' => 'fake-btn')),
+    '#value' => l(t('Item History'), 'circulation/history/'. $nid, array(
+      'attributes' => array(
+        'title' => t('View the circulation history of this item'), 
+        'class' => 'fake-btn',
+      ),
+    )),
     '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
   );
   $status = db_result(db_query("SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid));
   if (!$status) {
     $form['circulation']['checkout'] = array(
-      '#value' => l(t('Check Out'), 'circulation/checkout/'. $nid, array('title' => t('Issue this item now'), 'class' => 'fake-btn')),
+      '#value' => l(t('Check Out'), 'circulation/checkout/'. $nid, array(
+        'attributes' => array(
+          'title' => t('Issue this item now'), 
+          'class' => 'fake-btn',
+        ),
+      )),
       '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
     );
     $form['circulation']['checkin'] = array(
@@ -340,7 +350,12 @@ function circulation_node_form($form_state, $nid) {
       '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
     );
     $form['circulation']['checkin'] = array(
-      '#value' => l(t('Check In'), 'circulation/checkin/'. $nid, array('title' => t('Return Item Now'), 'class' => 'fake-btn')),
+      '#value' => l(t('Check In'), 'circulation/checkin/'. $nid, array(
+        'attributes' => array(
+          'title' => t('Return Item Now'), 
+          'class' => 'fake-btn',
+         ),
+      )),
     );
   }
   return $form;
