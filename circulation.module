@@ -807,12 +807,12 @@ function circulation_get_item_status($nid) {
   if ($row = db_fetch_object($result)) {
     // 86400 seconds = 24 hours
     // if the due date + 1 day is less than now:
-    if (86400 + $sqresultrow->due  <  date("U")) {
+    if (86400 + $row->due  <  date("U")) {
       // then the item is late:
-      $return = array('late',$sqresultrow->due);
+      $return = array('late',$row->due);
     } else {
       // otherwise the item is just out:
-      $return = array('out',$sqresultrow->due);
+      $return = array('out',$row->due);
     }
   } else {
     // if there were no rows in the result, then the item is in:
