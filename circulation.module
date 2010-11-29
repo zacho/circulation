@@ -801,6 +801,26 @@ function get_item_nid_from_title($title) {
   }
 }
 
+function circulation_get_item_status($nid) {
+  $query = "SELECT c.* FROM {circulation} c WHERE c.`nid` = '%d' AND c.`checkin` IS NULL ORDER BY c.`checkout` DESC LIMIT 1";
+  $result = db_query($query,$nid);
+  if ($row = db_fetch_object($result)) {
+    // 86400 seconds = 24 hours
+    // if the due date + 1 day is less than now:
+    if (86400 + $sqresultrow->due  <  date("U")) {
+      // then the item is late:
+      $return = array('late',$sqresultrow->due);
+    } else {
+      // otherwise the item is just out:
+      $return = array('out',$sqresultrow->due);
+    }
+  } else {
+    // if there were no rows in the result, then the item is in:
+    $return = array('in');
+  }
+  return $return;
+}
+
 
 /*
  * Function to retrieve circulation data regarding all current loans for a given user.
