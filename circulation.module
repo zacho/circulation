@@ -442,7 +442,7 @@ function circulation_checkin($nid, $confirm = NULL) {
     $checkinsql = "UPDATE {circulation} SET `checkin` = '%s' WHERE `nid` = %d AND `checkin` IS NULL";
     if (db_query($checkinsql, date("U"), $nid)) {
       //SUCCESS
-      _circulation_go_home(t('Item successfully checked-in.'), 'node/'. $nid);
+      _circulation_go_home(t('Item successfully checked-in.'), 'circulation');
     }
     else {
       //FAILURE
