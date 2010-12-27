@@ -501,7 +501,7 @@ function checkout_user_form($form_state, $args = array()) {
   $form['item_code'] = array(
     '#title' => t('Item to be Loaned'),
     '#type' => 'textfield',
-    '#description' => t('Enter the code (e.g. EDU 1234) of the item being loaned.'),
+    '#description' => t('Enter the title or call number of the item being loaned.'),
     '#autocomplete_path' => 'circulation/itemcode_autocomplete',
     '#size' => 60,
   );
