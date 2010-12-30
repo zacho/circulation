@@ -3,4 +3,4 @@ name = Circulation
 description = Allows nodes to be checked-out by users
 dependencies[] = nodereference
 core = 6.x
-version = 6.x-dev
+version = 6.x-1.x-dev

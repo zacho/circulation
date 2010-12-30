@@ -52,6 +52,13 @@ function circulation_schema() {
         'unsigned' => TRUE,
         'default' => null,
       ),
+      'renewals' => array(
+        'type' => 'int',
+        'description' => t('The number of times an item has been renewed'),
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('cid'),
     'unique keys' => array(
@@ -71,4 +78,23 @@ function circulation_install() {
 function circulation_uninstall() {
   // Drop my tables.
   drupal_uninstall_schema('circulation');
+}
+
+/**
+ * Add #renewals field to circulation table.
+ */
+function circulation_update_6001() {
+  $ret = array();
+
+  // Add a callback column and an index.
+  $spec = array(
+    'type' => 'int',
+    'description' => t('The number of times an item has been renewed'),
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  db_add_field($ret, 'circulation', 'renewals', $spec);
+
+  return $ret;
 }

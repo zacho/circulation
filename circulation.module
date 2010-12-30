@@ -36,7 +36,7 @@ function circulation_help($path, $arg) {
  * Implementation of hook_perm().
  */
 function circulation_perm() {
-  return array('access circulation', 'administer circulation');
+  return array('access circulation', 'administer circulation', 'renew own items');
 }
 
 /**
@@ -83,6 +83,13 @@ function circulation_menu() {
      'type' => MENU_NORMAL_ITEM,
   );
 
+  $items['circulation/renew'] = array(
+     'title' => 'Renew',
+     'page callback' => 'circulation_renew', 
+     'access arguments' => array('access circulation'),
+     'type' => MENU_CALLBACK,
+  );
+
   $items['circulation/userholdings'] = array(
      'title' => 'User-Current Loans',
      'page callback' => 'circulation_userholdings', 
@@ -124,14 +131,6 @@ function circulation_settings() {
     '#description' => t('Select the nodetype which itemizes your bibliographic record type(s).  This field should select the type of content which can be loaned to users'),
   );
   
-  $form['circulation_loanperiod'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Loan period'),
-    '#size' => 4,
-    '#default_value' => variable_get('circulation_loanperiod', 14),
-    '#description' => t('The number of days for a standard loan'),
-  );
-  
   $itemtype = CIRCULATION_ITEMTYPE;
   if ($itemtype != '') {
     $itemfields = db_query('SELECT f.field_name, f.label FROM {content_node_field_instance} f WHERE f.type_name = \'%s\'', $itemtype);
@@ -150,14 +149,36 @@ function circulation_settings() {
 
   }
 
-  $form['circulation_use_nodeapi'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Embed circulation links directly in $node'),
-    '#default_value' => variable_get('circulation_use_nodeapi',false),
-    '#description' => t('If you check this box then circulation links (check in, check out, item history) will be embedded into the item records directly.  The nicer option is just to use the Circulation Node Status block which this module creates.'),
+  $form['circulation_loans'] = array(
+    '#type' => 'fieldset', 
+    '#title' => t('Loans'), 
+    '#collapsible' => FALSE, 
+    '#collapsed' => FALSE,
   );
 
-  $form['array_filter'] = array('#type' => 'hidden');
+  $form['circulation_loans']['circulation_loanperiod'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Loan length'),
+    '#size' => 4,
+    '#default_value' => variable_get('circulation_loanperiod', 14),
+    '#description' => t('The number of days for a standard loan'),
+  );
+  
+  $form['circulation_loans']['circulation_renewalperiod'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Renewal length'),
+    '#size' => 4,
+    '#default_value' => variable_get('circulation_renewalperiod', 7),
+    '#description' => t('The number of days for a loan renewal.  (Set to zero to disable renewals completely.)'),
+  );
+
+  $form['circulation_loans']['circulation_maxrenewals'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Max Renewals'),
+    '#size' => 4,
+    '#default_value' => variable_get('circulation_maxrenewals', 3),
+    '#description' => t('The maximum allowable number of renewals.'),
+  );
 
   if (module_exists('profile')) {
     $profile_fields_result = db_query('SELECT * FROM {profile_fields} WHERE 1');
@@ -178,6 +199,15 @@ function circulation_settings() {
       '#default_value' => variable_get('circulation_profile_names',array()),
     );
   }
+
+  $form['circulation_use_nodeapi'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Embed circulation links directly in $node'),
+    '#default_value' => variable_get('circulation_use_nodeapi',false),
+    '#description' => t('If you check this box then circulation links (check in, check out, item history) will be embedded into the item records directly.  The nicer option is just to use the Circulation Node Status block which this module creates.'),
+  );
+
+  $form['array_filter'] = array('#type' => 'hidden');
 
   return system_settings_form($form);
 
@@ -373,7 +403,7 @@ function circulation_user($op, $edit, &$account, $category = NULL) {
 
   // if ($op == 'view') {
   //   $account->content['circulation_form'] = array(
-  // 	  '#type' => 'circulation_table'
+  //     '#type' => 'circulation_table'
   //     '#value' => drupal_get_form('circulation_userholdings',$account->uid),
   //     '#weight' => 20,
   //   );
@@ -395,7 +425,7 @@ function circulation_user($op, $edit, &$account, $category = NULL) {
         $account->content['circulation_checkout'] = array(
           '#title' => 'New Loan',
           '#value' => l(t('Check Out Item'), 'circulation/checkout/0/'. $account->uid, array('title' => t('Issue a loan to this user now'), 'class' => 'fake-btn')),
-          	'#type'  => 'markup',
+          '#type'  => 'markup',
           '#weight' => 31,
         );
       }
@@ -407,13 +437,34 @@ function circulation_user($op, $edit, &$account, $category = NULL) {
 
 
 
-function _circulation_go_home($message, $url = "circulation") {
+function _circulation_go_home($message, $url = null) {
+  global $user;
+
+  if( empty( $url ) || $url == 'circulation' ) {
+    if(user_access('administer circulation')) {
+      $url = 'circulation';
+    }
+    elseif( !empty( $user->uid ) ) {
+      $url = 'user/'.$user->uid;
+    } else {
+      $url = '<front>';
+    }
+  }
+
   drupal_set_message($message);
   drupal_goto($url);
 }
 
-function _circulation_count_by_nid($nid) {
-  return db_result(db_query("SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid));
+function _circulation_get_renewals( $cid ) {
+  return db_result( db_query( "SELECT `renewals` FROM {circulation} WHERE `cid` = %d", $cid ) );
+}
+
+function _circulation_get_nid( $cid ) {
+  return db_result( db_query( "SELECT `nid` FROM {circulation} WHERE `cid` = %d", $cid ) );
+}
+
+function _circulation_count_checkouts_by_nid( $nid ) {
+  return db_result( db_query( "SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid ) );
 }
 
 function circulation_checkin($nid, $confirm = NULL) {
@@ -426,7 +477,7 @@ function circulation_checkin($nid, $confirm = NULL) {
   if ($confirm != 'confirm') {
 
     // Verify nid, generate confirm URL and form.
-    $count = _circulation_count_by_nid($nid);
+    $count = _circulation_count_checkouts_by_nid($nid);
     if ($count > 0) {
       drupal_set_title(t('Confirm Check-in'));
       return "You want to set item ". get_node_title($nid) ." (". get_node_title(get_item_parent($nid)) .") as returned, Correct?  " .
@@ -452,8 +503,20 @@ function circulation_checkin($nid, $confirm = NULL) {
   
 }
 
-
-function circulation_checkout($nid=0, $uid=0, $confirm=0) {
+/**
+ * Checks out an item.
+ * 
+ * @param $nid
+ *   A numeric node-id.
+ *
+ * @param $uid
+ *   A numeric user-id.
+ *
+ * @return
+ *   The checkout form, which is a simple link to the checkout page with
+ *   certain values pre-populated.
+ */
+function circulation_checkout($nid=0, $uid=0) {
   if ($nid AND !$uid) {
     // Node indicated, select user
     // need a form: circulation_checkout
@@ -462,7 +525,7 @@ function circulation_checkout($nid=0, $uid=0, $confirm=0) {
 
   } 
   elseif (!$nid AND $uid) {
-    // User indicated, Sleect node
+    // User indicated, Select node
     $output  = t('Enter the username of the borrower and the item code of the zine');
     $output .= drupal_get_form('checkout_user_form', array('uid' => $uid));
 
@@ -585,6 +648,72 @@ function checkout_user_form_submit($form, &$form_state) {
   }
   _circulation_go_home(t('You would issue item <i>%code</i> to user <i>%name</i>', array('%code' => $form_state['values']['item_code'], '%name' => $form_state['values']['user_name'])));
 }
+
+/**
+ * Renews a checked-out item.
+ *
+ * The rules are roughly: you can't renew an overdue item, 
+ *   and you can only renew a certain number of times.
+ * 
+ * @param $cid
+ *   A numeric circulation-id.
+ *
+ * @return
+ *   The checkout form, which is a simple link to the checkout page with
+ *   certain values pre-populated.
+ */
+function circulation_renew( $cid=0, $confirm = NULL ) {
+  if (!empty( $cid )) {
+
+    if ($confirm != 'confirm') {
+    
+      // Verify cid, generate confirmation URL and form.
+      $nid        = _circulation_get_nid( $cid );
+      $checkedout = _circulation_count_checkouts_by_nid( $nid );
+      $renewals   = _circulation_get_renewals( $cid );
+      
+      if ($checkedout > 0 && $renewals < variable_get( 'circulation_maxrenewals', 3 )) {
+        drupal_set_title(t('Confirm Renewal'));
+        return "Renew loan on item ". get_node_title($nid) ." (". get_node_title(get_item_parent($nid)) .") for ". 
+          variable_get( 'circulation_maxrenewals', 3 )." days?  ".
+          l('Confirm', 'circulation/renew/'. $cid ."/confirm", array('title' => t('Proceed with renewal'), 'class' => 'fake-btn'));
+      } // valid circulation record
+      else {
+        _circulation_go_home(t('Invalid circulation record @cid.', array('@cid' => $cid)));
+      }
+    
+    }
+    else {
+      // update due date and increment #renewals
+      $renewal_period = variable_get('circulation_renewalperiod', 7);
+      $new_duedate = date(
+                       "U", 
+                       mktime( 
+                       // Midnight:
+                       0, // hour
+                       0, // minute
+                       0, // second
+                       date("m"), // this month
+                       date("d")+$renewal_period,  // this day plus the renewal period
+                       date("Y") // this year
+                     ));
+      $renewsql = "UPDATE {circulation} SET `due` = '%s', `renewals` = %d WHERE `cid` = %d AND `checkin` IS NULL";
+      if (db_query($renewsql, $new_duedate, $renewals+1, $cid)) {
+        //SUCCESS
+        _circulation_go_home(t('Loan renewed.'), 'circulation');
+      }
+      else {
+        //FAILURE
+        _circulation_go_home(t('Renewal failed.'), 'node/'. $nid);
+      }
+    }
+  }
+  else {
+    _circulation_go_home(t('Circulation ID not supplied or invalid.'));
+    break;
+  }
+}
+
 
 function circulation_userholdings($nid = null) {
   return "<h3>" . t('Circulation') . "</h3>" . circulation_userholdings_table($nid);
@@ -744,7 +873,7 @@ function circulation_user_autocomplete($string = '') {
     if (module_exists('profile') && !empty($profile_names)) {
       $result = db_query_range("SELECT u.`name`, p.`value` FROM {users} u LEFT JOIN {profile_values} p ON u.`uid` = p.`uid` WHERE LOWER( u.`name` ) LIKE LOWER('%%%s%%') OR LOWER( p.`value` ) LIKE LOWER('%%%s%%')", $string, $string, 0, 10);
       while ($user = db_fetch_object($result)) {
-	    $matches[$user->name] = check_plain($user->name . ' (' . $user->value . ')' );
+        $matches[$user->name] = check_plain($user->name . ' (' . $user->value . ')' );
       }
     } else {
       $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%%%s%%')", $string, 0, 10);
