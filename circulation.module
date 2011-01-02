@@ -86,7 +86,9 @@ function circulation_menu() {
   $items['circulation/renew'] = array(
      'title' => 'Renew',
      'page callback' => 'circulation_renew', 
-     'access arguments' => array('access circulation'),
+     'access callback' => 'circulation_access_renew_item',
+     //'access arguments' => array(array('access circulation', 'renew own items')), 
+     //only single arguments to user_access
      'type' => MENU_CALLBACK,
   );
 
@@ -114,6 +116,15 @@ function circulation_menu() {
   return $items;
 }
 
+
+function circulation_access_renew_item() {
+  if( user_access( 'access circulation' ) || user_access( 'renew own items' ) ) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
 
 /**
  * Implementation of hook_settings().
@@ -313,7 +324,7 @@ function circulation_node_block_form($form_state, $nid) {
       '#title' => t('Status'),
       '#value' => '<h3 class="circulation_status">'.t('Out').'</h3>',
     );
-    $form['circulation_item_checkin'] = array(
+    $form['circulation_item_checkin'] = array( 
       '#value' => l(t('Check In Now'), 'circulation/checkin/'. $nid, array('title' => t('Return Item Now'), 'class' => 'fake-btn')),
       '#suffix' => '<br />',
     );
@@ -359,7 +370,8 @@ function circulation_node_form($form_state, $nid) {
     )),
     '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
   );
-  $status = db_result(db_query("SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid));
+  $status = _circulation_count_checkouts_by_nid($nid);
+  $destination = drupal_get_destination();
   if (!$status) {
     $form['circulation']['checkout'] = array(
       '#value' => l(t('Check Out'), 'circulation/checkout/'. $nid, array(
@@ -368,16 +380,19 @@ function circulation_node_form($form_state, $nid) {
           'class' => 'fake-btn',
         ),
       )),
-      '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
-    );
-    $form['circulation']['checkin'] = array(
-      '#value' => t('Check In'),
     );
   } 
   else {
-    $form['circulation']['checkout'] = array(
-      '#value' => t('Check Out'),
-      '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
+    $cid = _circulation_get_cid( $nid );
+    $form['circulation']['renew'] = array(
+      '#value' => l(t('Renew'), 'circulation/renew/'. $cid, array(
+        'attributes' => array(
+          'title' => t('Renew Loan'), 
+          'class' => 'fake-btn',
+         ),
+         'query' => $destination,
+      )),
+    '#suffix' => '&nbsp;&nbsp;|&nbsp;&nbsp;',
     );
     $form['circulation']['checkin'] = array(
       '#value' => l(t('Check In'), 'circulation/checkin/'. $nid, array(
@@ -463,8 +478,16 @@ function _circulation_get_nid( $cid ) {
   return db_result( db_query( "SELECT `nid` FROM {circulation} WHERE `cid` = %d", $cid ) );
 }
 
+function _circulation_get_cid( $nid ) {
+  return db_result( db_query( "SELECT `cid` FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL ORDER BY `cid` DESC LIMIT 1", $nid ) );
+}
+
 function _circulation_count_checkouts_by_nid( $nid ) {
   return db_result( db_query( "SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid ) );
+}
+
+function _circulation_get_due_date( $cid ) {
+  return db_result( db_query( "SELECT `due` FROM {circulation} WHERE `cid` = %d", $cid ) );
 }
 
 function circulation_checkin($nid, $confirm = NULL) {
@@ -665,40 +688,64 @@ function checkout_user_form_submit($form, &$form_state) {
 function circulation_renew( $cid=0, $confirm = NULL ) {
   if (!empty( $cid )) {
 
+    // build the renewal due date
+    $renewal_period = variable_get('circulation_renewalperiod', 7);
+    $new_duedate = date(
+                     "U", 
+                     mktime( 
+                     // Midnight:
+                     0, // hour
+                     0, // minute
+                     0, // second
+                     date("m"), // this month
+                     date("d")+$renewal_period,  // this day plus the renewal period
+                     date("Y") // this year
+                   ));
+
+    // make sure the renewal won't make it due sooner than it currently is
+    $old_duedate = _circulation_get_due_date( $cid );
+    if( $new_duedate <= $old_duedate ) {
+      _circulation_go_home( t( 'The current loan lasts at least as long as an extension would, so we\'re doing nothing.' ) );
+    }
+
+    // make sure the thing isn't already overdue
+    if( date('U') > $old_duedate ) {
+      _circulation_go_home( t('Can\'t renew overdue items') );
+    }
+
+    // Verify cid, generate confirmation URL and form.
+    $renewals   = _circulation_get_renewals( $cid );
+    $nid        = _circulation_get_nid( $cid );
+    $checkedout = _circulation_count_checkouts_by_nid( $nid );
+
     if ($confirm != 'confirm') {
     
-      // Verify cid, generate confirmation URL and form.
-      $nid        = _circulation_get_nid( $cid );
-      $checkedout = _circulation_count_checkouts_by_nid( $nid );
-      $renewals   = _circulation_get_renewals( $cid );
+      // check for a destination
+      if (isset( $_REQUEST['destination'] )) {
+        $destination = drupal_get_destination($_REQUEST['destination']);
+      }
       
-      if ($checkedout > 0 && $renewals < variable_get( 'circulation_maxrenewals', 3 )) {
+      // check number of renewals
+      if ( $renewals >= variable_get( 'circulation_maxrenewals', 3 ) ) {
+        _circulation_go_home( t('You can only renew items '.variable_get( 'circulation_maxrenewals', 3 ).' times.') );
+      }
+
+      if ($checkedout > 0 ) {
         drupal_set_title(t('Confirm Renewal'));
         return "Renew loan on item ". get_node_title($nid) ." (". get_node_title(get_item_parent($nid)) .") for ". 
-          variable_get( 'circulation_maxrenewals', 3 )." days?  ".
-          l('Confirm', 'circulation/renew/'. $cid ."/confirm", array('title' => t('Proceed with renewal'), 'class' => 'fake-btn'));
+          variable_get( 'circulation_renewalperiod', 7 )." days?  ".
+          l('Confirm', 'circulation/renew/'. $cid ."/confirm", array('query' => $destination, 'title' => t('Proceed with renewal'), 'class' => 'fake-btn'));
       } // valid circulation record
       else {
         _circulation_go_home(t('Invalid circulation record @cid.', array('@cid' => $cid)));
       }
     
     }
-    else {
+    else {      
       // update due date and increment #renewals
-      $renewal_period = variable_get('circulation_renewalperiod', 7);
-      $new_duedate = date(
-                       "U", 
-                       mktime( 
-                       // Midnight:
-                       0, // hour
-                       0, // minute
-                       0, // second
-                       date("m"), // this month
-                       date("d")+$renewal_period,  // this day plus the renewal period
-                       date("Y") // this year
-                     ));
+      $renewals++;
       $renewsql = "UPDATE {circulation} SET `due` = '%s', `renewals` = %d WHERE `cid` = %d AND `checkin` IS NULL";
-      if (db_query($renewsql, $new_duedate, $renewals+1, $cid)) {
+      if (db_query($renewsql, $new_duedate, $renewals, $cid)) {
         //SUCCESS
         _circulation_go_home(t('Loan renewed.'), 'circulation');
       }
@@ -716,7 +763,7 @@ function circulation_renew( $cid=0, $confirm = NULL ) {
 
 
 function circulation_userholdings($nid = null) {
-  return "<h3>" . t('Circulation') . "</h3>" . circulation_userholdings_table($nid);
+  return "<h3>" . t('Loans') . "</h3>" . circulation_userholdings_table($nid);
 }
 
 function circulation_userholdings_table($uid = NULL) {
@@ -724,6 +771,10 @@ function circulation_userholdings_table($uid = NULL) {
   $rows   = array();
   $count = 0;
   $access = user_access('access circulation');
+  if( circulation_access_renew_item() ) {
+    $header[] = t('Renewals');
+    $destination = drupal_get_destination();
+  }
   if ($access) {
     $header[] = t('Return');
   }
@@ -744,6 +795,22 @@ function circulation_userholdings_table($uid = NULL) {
         '<span class=\'date\'>'. date('j-M-y', $sqresultrow->checkout) .'</span>',
         '<span class=\''. $itemduedateclass .'\'>'. date('j-M-y', $sqresultrow->due) .'</span>',
       );
+      if( circulation_access_renew_item() ) {
+        $num_renewals = $sqresultrow->renewals;
+        $renew_prefix = '';
+
+        if( $num_renewals > 0 ) 
+          $renew_prefix = '('.$num_renewals.') ';
+
+        if( $num_renewals < variable_get( 'circulation_maxrenewals', 3 ) && date('U') <= $sqresultrow->due) {
+          $rows[$count][] = $renew_prefix . l(t('Renew'), 'circulation/renew/'. $sqresultrow->cid, 
+            array('query' => $destination, 'title' => t('Renew Loan'), 'class' => 'fake-btn'));
+        } 
+        else {
+          $rows[$count][] = $renew_prefix . t('Renew');  
+        }
+
+      }
       if ($access) {
         $rows[$count][] = l('Check In', 'circulation/checkin/'. $sqresultrow->nid, array('title' => t('Return Item Now'), 'class' => 'fake-btn'));
       }
@@ -758,7 +825,7 @@ function circulation_userholdings_table($uid = NULL) {
 
 function circulation_history($nid = NULL) {
   
-  $header = array(t('Item Code'), t('Title'), t('Borrower'), t('Checkout'), t('Due'));
+  $header = array(t('Title'), t('Borrower'), t('Checkout'), t('Due'));
   $rows   = array();
   $count = 0;
   
@@ -774,7 +841,6 @@ function circulation_history($nid = NULL) {
       $zinetitle = get_node_title($zinenid);
       $username  = get_user_name($sqresultrow->uid);
       $rows[$count] = array(
-                    l($itemcode, 'node/'. $sqresultrow->nid),
                     l($zinetitle, 'node/'. $zinenid),
                     l($username, 'user/'. $sqresultrow->uid),
                     '<span class=\'date\'>'. date('j-M-y', $sqresultrow->checkout) .'</span>',
@@ -798,10 +864,8 @@ function circulation_history($nid = NULL) {
  * function that makes output for when /circulation or /circulation/[nid] is requested
  */
 //function circulation_loan_list($arg1 = null, $arg2 = null, $arg3 = null, $arg4 = null) {
-function circulation_loan_list() {
+function circulation_loan_list($nid = null) {
 
-  $nid = NULL;
-  
   $header = array(t('Item Code'), t('Zine Title'), t('Borrower'), t('Checkout'), t('Due'));
   $rows   = array();
   $count = 0;
@@ -810,6 +874,7 @@ function circulation_loan_list() {
     // Query all items
     $alloutsql = "SELECT * FROM {circulation} WHERE `checkin` IS NULL ORDER BY `due` ASC";
     $alloutres = db_query($alloutsql);
+    $header[] = t('Renewals');
     $header[] = t('History');
     $header[] = t('Return');
 
@@ -819,7 +884,7 @@ function circulation_loan_list() {
       $itemduedateclass .= " overdue";}
       $itemcode  = get_node_title($sqresultrow->nid);
       $zinenid   = get_item_parent($sqresultrow->nid);
-      $zinetitle = get_node_title($zinenid);
+      $zinetitle = truncate_utf8(get_node_title($zinenid), 25, false, true);
       $username  = get_user_name($sqresultrow->uid);
       
       //Add row to table
@@ -831,12 +896,29 @@ function circulation_loan_list() {
                     '<span class=\''. $itemduedateclass .'\'>'. date('d-M-y', $sqresultrow->due) .'</date>',
       );
       drupal_set_title(t('Circulation'));
-      $rows[$count][] = l('View All', 'circulation/history/'. $sqresultrow->nid, array('title' => t('View circulation history for this item')));
-      $rows[$count][] = l('Check In', 'circulation/checkin/'. $sqresultrow->nid, array('title' => t('Return Item Now'), 'class' => 'fake-btn'));
+      $destination = drupal_get_destination();
+      $num_renewals = $sqresultrow->renewals;
+      $renew_prefix = '';
+
+      if( $num_renewals > 0 ) 
+        $renew_prefix = '('.$num_renewals.') ';
+
+      if( $num_renewals < variable_get( 'circulation_maxrenewals', 3 ) && date('U') <= $sqresultrow->due ) {
+        $rows[$count][] = $renew_prefix . l(t('Renew'), 'circulation/renew/'. $sqresultrow->cid, 
+          array('query' => $destination, 'title' => t('Renew Loan'), 'class' => 'fake-btn'));
+      } 
+      else {
+        $rows[$count][] = $renew_prefix . t('Renew');  
+      }
+      
+      $rows[$count][] = l(t('View All'), 'circulation/history/'. $sqresultrow->nid, array('title' => t('View circulation history for this item')));
+      $rows[$count][] = l(t('Check In'), 'circulation/checkin/'. $sqresultrow->nid, array('title' => t('Return Item Now'), 'class' => 'fake-btn'));
       $count++;
     }
   } 
   else {
+    // forward off to item history
+    drupal_goto('circulation/history/'.$nid);
   }
   
   $output = theme('table', $header, $rows);
