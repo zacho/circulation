@@ -59,6 +59,12 @@ function circulation_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'notified' => array(
+        'type' => 'int',
+        'description' => t('Timestamp on which the last overdue notification went out.'),
+        'unsigned' => TRUE,
+        'default' => null,
+      ),
     ),
     'primary key' => array('cid'),
     'unique keys' => array(
@@ -95,6 +101,24 @@ function circulation_update_6001() {
     'default' => 0,
   );
   db_add_field($ret, 'circulation', 'renewals', $spec);
+
+  return $ret;
+}
+
+/**
+ * Add overdue notifications for overdue items.
+ */
+function circulation_update_6002() {
+  $ret = array();
+
+  // Add a callback column and an index.
+  $spec = array(
+    'type' => 'int',
+    'description' => t('Timestamp on which the last overdue notification went out.'),
+    'unsigned' => TRUE,
+    'default' => null,
+  );
+  db_add_field($ret, 'circulation', 'notified', $spec);
 
   return $ret;
 }
