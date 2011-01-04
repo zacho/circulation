@@ -13,6 +13,7 @@
  */
 
 define('CIRCULATION_ITEMTYPE', variable_get('circulation_itemtype', NULL));
+define('SECONDS_PER_DAY', 86400);
 
 /********************************************************************
  * Drupal Hooks :: General Overview
@@ -180,7 +181,7 @@ function circulation_settings() {
     '#title' => t('Renewal length'),
     '#size' => 4,
     '#default_value' => variable_get('circulation_renewalperiod', 7),
-    '#description' => t('The number of days for a loan renewal.  (Set to zero to disable renewals completely.)'),
+    '#description' => t('The number of days for a loan renewal. '),
   );
 
   $form['circulation_loans']['circulation_maxrenewals'] = array(
@@ -189,6 +190,32 @@ function circulation_settings() {
     '#size' => 4,
     '#default_value' => variable_get('circulation_maxrenewals', 3),
     '#description' => t('The maximum allowable number of renewals.'),
+  );
+
+  $form['circulation_loans']['circulation_notificationperiod'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Notification interval'),
+    '#size' => 4,
+    '#default_value' => variable_get('circulation_notificationperiod', 7),
+    '#description' => t('How often to notify users about overdue items (please don\'t set this to zero!).'),
+  );
+
+  $form['circulation_loans']['circulation_warningnotificationmessage'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Warning Message'),
+    '#rows' => 6,
+    '#cols' => 60,
+    '#default_value' => variable_get('circulation_warningnotificationmessage', 'The following item is due soon: [title]'),
+    '#description' => t('Outgoing message to remind users of soon-due items.  <br/>You may use the following replacement strings: [title], [callnumber], [date], [duedate], [daysleft], and [website].'),
+  );
+
+  $form['circulation_loans']['circulation_latenotificationmessage'] = array(
+    '#type' => 'textarea',
+    '#title' => t('Overdue Message'),
+    '#rows' => 6,
+    '#cols' => 60,
+    '#default_value' => variable_get('circulation_latenotificationmessage', 'The following item is overdue: [title]'),
+    '#description' => t('Outgoing message for overdue email notifications.  <br/>You may use the following replacement strings: [title], [callnumber], [date], [duedate], and [website].'),
   );
 
   if (module_exists('profile')) {
@@ -225,7 +252,125 @@ function circulation_settings() {
 }
 
 
-/*
+/**
+ * Implementation of hook_cron().
+ */
+function circulation_cron() {
+  if(function_exists('messaging_message_send_user') ) {
+    global $base_url;
+    
+    $overdue_items = _circulation_get_overdue_loans();
+    $soondue_items = _circulation_get_soondue_loans();
+
+    $now = date('U');
+    $notification_threshold = date(
+          "U",
+          mktime(
+            // Midnight:
+            0, // hour
+            0, // minute
+            0, // second
+            date("m"), // this month
+            date("d")-variable_get('circulation_notificationperiod', 7),  // this day plus the loan period
+            date("Y") // this year
+          ));
+
+    foreach( $soondue_items as $item ) {
+      $notified = $item->notified;
+      if ( empty($notified) || ($notified < $notification_threshold) ) {
+
+        $account = user_load($item->uid);
+        $itemcode  = get_node_title($item->nid);
+        $zinenid   = get_item_parent($item->nid);
+        $zinetitle = get_node_title($zinenid);
+        $daysleft  = floor(($item->due - $now) / SECONDS_PER_DAY);
+
+        $search = array(
+            '[title]',
+            '[callnumber]',
+            '[daysleft]',
+            '[duedate]',
+            '[website]',
+            '[date]',
+        );
+        $replace = array(
+            $zinetitle,
+            $itemcode,
+            $daysleft,
+            date('F jS, Y',$item->due),
+            $base_url,
+            date('Y-M-d'),
+        );
+
+        $message_body = variable_get('circulation_warningnotificationmessage', "The following item is overdue: [title]");
+        $message_body = str_replace($search,$replace,$message_body);
+        $message = array(
+            'type' => 'simple',
+            'subject' => 'Notice of Soon-due Loans ['.variable_get('site_name','Library').']',
+            'body' => $message_body,
+        );
+
+        messaging_message_send_user($account, $message, $method = NULL, $queue = 1);
+        $update_sql = "UPDATE {circulation} SET `notified` = %d WHERE `cid` = %d AND `nid` = %d";
+        db_query( $update_sql, $now, $item->cid, $item->nid );
+      }
+      else {
+        // It's not time to send another message yet.
+      }
+    }
+
+    // prior to becoming late, users will have received soon-due notifications.
+    // therefore, we must not only look for circulation entries with notified
+    // values more than $notification_threshold days old, but also those that are
+    // earlier than the due date.
+    foreach( $overdue_items as $item ) {
+      $notified = $item->notified;
+      if ( empty($notified) || ($notified < $notification_threshold) || ($notified < $item->due) ) {
+
+        $account = user_load($item->uid);
+        $itemcode  = get_node_title($item->nid);
+        $zinenid   = get_item_parent($item->nid);
+        $zinetitle = get_node_title($zinenid);
+
+        $search = array(
+            '[title]',
+            '[callnumber]',
+            '[duedate]',
+            '[website]',
+            '[date]',
+        );
+        $replace = array(
+            $zinetitle,
+            $itemcode,
+            date('F jS, Y',$item->due),
+            $base_url,
+            date('Y-M-d'),
+        );
+
+        $message_body = variable_get('circulation_latenotificationmessage', "The following item is overdue: [title]");
+        $message_body = str_replace($search,$replace,$message_body);
+        $message = array(
+            'type' => 'simple',
+            'subject' => 'Notice of Overdue Loans ['.variable_get('site_name','Library').']',
+            'body' => $message_body,
+        );
+
+        messaging_message_send_user($account, $message, $method = NULL, $queue = 1);
+        $update_sql = "UPDATE {circulation} SET `notified` = %d WHERE `cid` = %d AND `nid` = %d";
+        db_query( $update_sql, $now, $item->cid, $item->nid );
+      }
+      else {
+        // It's not time to send another message yet.
+      }
+    }
+
+  }
+  else {
+    // no messaging api, don't send messages.
+  }
+}
+
+/**
  * Implementation of hook_nodeapi().
  */
 function circulation_nodeapi(&$node, $op, $teaser, $page) {
@@ -488,6 +633,36 @@ function _circulation_count_checkouts_by_nid( $nid ) {
 
 function _circulation_get_due_date( $cid ) {
   return db_result( db_query( "SELECT `due` FROM {circulation} WHERE `cid` = %d", $cid ) );
+}
+
+/**
+ * return a data structure of overdue loan entries
+ *
+ * @return
+ *    array of objects, where each contains all database fields
+ */
+function _circulation_get_overdue_loans() {
+  $overdue_sql = "SELECT * FROM {circulation} WHERE `due` < %d AND `checkin` IS NULL";
+  $overdue_res = db_query( $overdue_sql, date('U')+SECONDS_PER_DAY );
+  // use SECONDS_PER_DAY because we'd like to wait 'till they're a day late to send messages
+  $output = array();
+  while( $row = db_fetch_object( $overdue_res ) ) {
+    $output[] = $row;
+  }
+  return $output;
+}
+
+function _circulation_get_soondue_loans() {
+  $output = array();
+  if( variable_get('circulation_renewalperiod', 7) > 0 ) {
+    $notification_period = SECONDS_PER_DAY * variable_get('circulation_notificationperiod', 7);
+    $overdue_sql = "SELECT * FROM `circulation` WHERE `due`-%d < %d AND `due` > %d AND `checkin` IS NULL";
+    $overdue_res = db_query( $overdue_sql, $notification_period, date('U'), date('U') );
+    while( $row = db_fetch_object( $overdue_res ) ) {
+      $output[] = $row;
+    }
+  }
+  return $output;
 }
 
 function circulation_checkin($nid, $confirm = NULL) {
