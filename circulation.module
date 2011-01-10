@@ -306,7 +306,7 @@ function circulation_cron() {
         $message_body = str_replace($search,$replace,$message_body);
         $message = array(
             'type' => 'simple',
-            'subject' => 'Notice of Soon-due Loans ['.variable_get('site_name','Library').']',
+            'subject' => variable_get('site_name','Library').' notice',
             'body' => $message_body,
         );
 
@@ -325,7 +325,7 @@ function circulation_cron() {
     // earlier than the due date.
     foreach( $overdue_items as $item ) {
       $notified = $item->notified;
-      if ( empty($notified) || ($notified < $notification_threshold) || ($notified < $item->due) ) {
+      if ( empty($notified) || (($notified < $notification_threshold) && ($notified < $item->due)) ) {
 
         $account = user_load($item->uid);
         $itemcode  = get_node_title($item->nid);
@@ -351,7 +351,7 @@ function circulation_cron() {
         $message_body = str_replace($search,$replace,$message_body);
         $message = array(
             'type' => 'simple',
-            'subject' => 'Notice of Overdue Loans ['.variable_get('site_name','Library').']',
+            'subject' => variable_get('site_name','Library').' notice',
             'body' => $message_body,
         );
 
@@ -974,15 +974,15 @@ function circulation_userholdings_table($uid = NULL) {
         $num_renewals = $sqresultrow->renewals;
         $renew_prefix = '';
 
-        if( $num_renewals > 0 ) 
-          $renew_prefix = '('.$num_renewals.') ';
+        //if( $num_renewals > 0 ) 
+        //  $renew_prefix = '('.$num_renewals.') ';
 
         if( $num_renewals < variable_get( 'circulation_maxrenewals', 3 ) && date('U') <= $sqresultrow->due) {
           $rows[$count][] = $renew_prefix . l(t('Renew'), 'circulation/renew/'. $sqresultrow->cid, 
             array('query' => $destination, 'title' => t('Renew Loan'), 'class' => 'fake-btn'));
         } 
         else {
-          $rows[$count][] = $renew_prefix . t('Renew');  
+          $rows[$count][] = $renew_prefix . t('Cannot Renew');  
         }
 
       }
@@ -1041,7 +1041,7 @@ function circulation_history($nid = NULL) {
 //function circulation_loan_list($arg1 = null, $arg2 = null, $arg3 = null, $arg4 = null) {
 function circulation_loan_list($nid = null) {
 
-  $header = array(t('Item Code'), t('Zine Title'), t('Borrower'), t('Checkout'), t('Due'));
+  $header = array(t('Call Number'), t('Title'), t('Borrower'), t('Checkout'), t('Due'));
   $rows   = array();
   $count = 0;
 
@@ -1075,15 +1075,15 @@ function circulation_loan_list($nid = null) {
       $num_renewals = $sqresultrow->renewals;
       $renew_prefix = '';
 
-      if( $num_renewals > 0 ) 
-        $renew_prefix = '('.$num_renewals.') ';
+      //if( $num_renewals > 0 ) 
+      //  $renew_prefix = '('.$num_renewals.') ';
 
       if( $num_renewals < variable_get( 'circulation_maxrenewals', 3 ) && date('U') <= $sqresultrow->due ) {
         $rows[$count][] = $renew_prefix . l(t('Renew'), 'circulation/renew/'. $sqresultrow->cid, 
           array('query' => $destination, 'title' => t('Renew Loan'), 'class' => 'fake-btn'));
       } 
       else {
-        $rows[$count][] = $renew_prefix . t('Renew');  
+        $rows[$count][] = $renew_prefix . t('Cannot Renew');  
       }
       
       $rows[$count][] = l(t('View All'), 'circulation/history/'. $sqresultrow->nid, array('title' => t('View circulation history for this item')));
