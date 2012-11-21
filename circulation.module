@@ -256,6 +256,7 @@ function circulation_settings() {
  * Implementation of hook_cron().
  */
 function circulation_cron() {
+//date_default_timezone_set(date_default_timezone());
   if(function_exists('messaging_message_send_user') ) {
     global $base_url;
     
@@ -642,6 +643,7 @@ function _circulation_get_due_date( $cid ) {
  *    array of objects, where each contains all database fields
  */
 function _circulation_get_overdue_loans() {
+//date_default_timezone_set(date_default_timezone());
   $overdue_sql = "SELECT * FROM {circulation} WHERE `due` < %d AND `checkin` IS NULL";
   $overdue_res = db_query( $overdue_sql, date('U')+SECONDS_PER_DAY );
   // use SECONDS_PER_DAY because we'd like to wait 'till they're a day late to send messages
@@ -653,6 +655,7 @@ function _circulation_get_overdue_loans() {
 }
 
 function _circulation_get_soondue_loans() {
+//date_default_timezone_set(date_default_timezone());
   $output = array();
   if( variable_get('circulation_renewalperiod', 7) > 0 ) {
     $notification_period = SECONDS_PER_DAY * variable_get('circulation_notificationperiod', 7);
@@ -667,6 +670,7 @@ function _circulation_get_soondue_loans() {
 
 function circulation_checkin($nid, $confirm = NULL) {
   
+//date_default_timezone_set(date_default_timezone());
   if (!$nid OR !is_numeric($nid)) {
     _circulation_go_home(t('Node ID not supplied or invalid.'));
     break;
@@ -814,6 +818,7 @@ function checkout_user_form_validate($form, &$form_state) {
 }
 
 function checkout_user_form_submit($form, &$form_state) {
+//date_default_timezone_set(date_default_timezone());
   $uid = get_uid($form_state['values']['user_name']);
   $nid = get_item_nid_from_title($form_state['values']['item_code']);
   $loan_period = variable_get('circulation_loanperiod', 14);
@@ -861,6 +866,7 @@ function checkout_user_form_submit($form, &$form_state) {
  *   certain values pre-populated.
  */
 function circulation_renew( $cid=0, $confirm = NULL ) {
+//date_default_timezone_set(date_default_timezone());
   if (!empty( $cid )) {
 
     // build the renewal due date
@@ -938,6 +944,7 @@ function circulation_renew( $cid=0, $confirm = NULL ) {
 
 
 function circulation_userholdings($nid = null) {
+//date_default_timezone_set(date_default_timezone());
   return "<h3>" . t('Loans') . "</h3>" . circulation_userholdings_table($nid);
 }
 
@@ -1000,6 +1007,7 @@ function circulation_userholdings_table($uid = NULL) {
 
 function circulation_history($nid = NULL) {
   
+//date_default_timezone_set(date_default_timezone());
   $header = array(t('Title'), t('Borrower'), t('Checkout'), t('Due'));
   $rows   = array();
   $count = 0;
@@ -1041,6 +1049,7 @@ function circulation_history($nid = NULL) {
 //function circulation_loan_list($arg1 = null, $arg2 = null, $arg3 = null, $arg4 = null) {
 function circulation_loan_list($nid = null) {
 
+//date_default_timezone_set(date_default_timezone());
   $header = array(t('Call Number'), t('Title'), t('Borrower'), t('Checkout'), t('Due'));
   $rows   = array();
   $count = 0;
@@ -1203,6 +1212,7 @@ function get_item_nid_from_title($title) {
 }
 
 function circulation_get_item_status($nid) {
+//date_default_timezone_set(date_default_timezone());
   $query = "SELECT c.* FROM {circulation} c WHERE c.`nid` = '%d' AND c.`checkin` IS NULL ORDER BY c.`checkout` DESC LIMIT 1";
   $result = db_query($query,$nid);
   if ($row = db_fetch_object($result)) {

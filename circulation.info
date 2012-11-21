@@ -1,6 +1,7 @@
 ; $Id$
 name = Circulation
 description = Allows nodes to be checked-out by users
+dependencies[] = date_api
 dependencies[] = nodereference
 dependencies[] = messaging
 core = 6.x
