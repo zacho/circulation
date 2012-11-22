@@ -7,7 +7,7 @@
 /**
  * Implementation of hook_install().
  *
- * Implementing Schema API for Drupal 6.x
+ * Implementing Schema API for Drupal 7.x
  */
 function circulation_schema() {
   // specification for circulation

@@ -10,6 +10,10 @@
  *
  * Updated to Drupal 6.x compat. by Chris Ritzo <chris.ritzo at gmail dot com>
  * for use with the Urbana Champaign Independent Media Center Library <library.ucimc.org>
+ *
+ * Version 6.x improved and expanded by Zac Howarth
+ *
+ * Updated to 7.x by Zac Howarth
  */
 
 define('CIRCULATION_ITEMTYPE', variable_get('circulation_itemtype', NULL));

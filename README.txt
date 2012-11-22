@@ -36,6 +36,8 @@ Authors
 
 A 5.x version of the module was built by Zachary Howarth-Schueler.
 A 6.x port was created by Chris Ritzo at the Champaign-Urbana IMC.
+The 6.x port was heavily modified again by Zachary Howarth-Schueler for the Youth Project library (youthproject.ns.ca)
+A 7.x port is currently underway, again by Zachary Howarth-Schueler.
 
 Ongoing maintenance is done by Zachary Howarth-Schueler.
 
