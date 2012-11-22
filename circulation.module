@@ -1141,9 +1141,14 @@ function circulation_user_autocomplete($string = '') {
   if ($string) {
     $profile_names = variable_get('circulation_profile_names',null);
     if (module_exists('profile') && !empty($profile_names)) {
-      $result = db_query_range("SELECT u.`name`, p.`value` FROM {users} u LEFT JOIN {profile_values} p ON u.`uid` = p.`uid` WHERE LOWER( u.`name` ) LIKE LOWER('%%%s%%') OR LOWER( p.`value` ) LIKE LOWER('%%%s%%')", $string, $string, 0, 10);
+      // fid=1 is an assumption that field_id of 1 is a person's full name
+      $result = db_query_range("SELECT u.`name`, p.`value`, p.`fid`  FROM {users} u LEFT JOIN {profile_values} p ON u.`uid` = p.`uid` WHERE (u.`status` = 1) AND (p.`fid` = 1 OR p.`fid` IS NULL) AND (LOWER( u.`name` ) LIKE LOWER('%%%s%%') OR LOWER( p.`value` ) LIKE LOWER('%%%s%%'))", $string, $string, 0, 15);
       while ($user = db_fetch_object($result)) {
-        $matches[$user->name] = check_plain($user->name . ' (' . $user->value . ')' );
+        if ($user->value) {
+          $matches[$user->name] = check_plain($user->name . ' (' . $user->value . ')' );
+        } else {
+          $matches[$user->name] = check_plain($user->name);
+        }
       }
     } else {
       $result = db_query_range("SELECT name FROM {users} WHERE LOWER(name) LIKE LOWER('%%%s%%')", $string, 0, 10);
