@@ -944,11 +944,11 @@ function circulation_renew( $cid=0, $confirm = NULL ) {
 
 
 function circulation_userholdings($nid = null) {
-//date_default_timezone_set(date_default_timezone());
   return "<h3>" . t('Loans') . "</h3>" . circulation_userholdings_table($nid);
 }
 
 function circulation_userholdings_table($uid = NULL) {
+//date_default_timezone_set(date_default_timezone());
   $header = array(t('Item Code'), t('Title'), t('Checkout'), t('Due'));
   $rows   = array();
   $count = 0;
