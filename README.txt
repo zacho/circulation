@@ -8,10 +8,9 @@ Circulation is a small module which facilitates the signing in and out of librar
 Premises:
 
 1) You have one or more content types containing bibliographic info for library materials.
-
-2) You have a single content type used to represent individual copies of media.
-
-3) Your library accounts equal drupal accounts.
+2) You have a single content type used to represent individual copies of borrowable media.
+3) Your library accounts equal drupal accounts.  
+  Might actually make sense to include a permission: can borrow.
 
 
 This module was built to support the the lending of zines at the Anchor Archive Regional Zine Project (a zine library in Halifax, NS).
