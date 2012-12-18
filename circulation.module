@@ -558,11 +558,16 @@ function circulation_node_form($form_state, $nid) {
 
 
 
-
 /**
  * Implementation of hook_user().
  *
- * Provides signature customization for the user's comments.
+ * Attaches info about user's check-outs on their user profile page.
+ *
+ * @global object $user
+ * @param string $op
+ * @param string $edit
+ * @param object $account
+ * @param string $category 
  */
 function circulation_user($op, $edit, &$account, $category = NULL) {
 
@@ -601,7 +606,13 @@ function circulation_user($op, $edit, &$account, $category = NULL) {
 }
 
 
-
+/**
+ * Redirect function, sends users *somewhere* after a circulation function has been executed.  Accepts a URL for definable redirects.
+ * 
+ * @global object $user
+ * @param string $message
+ * @param string $url 
+ */
 function _circulation_go_home($message, $url = null) {
   global $user;
 
@@ -620,22 +631,61 @@ function _circulation_go_home($message, $url = null) {
   drupal_goto($url);
 }
 
+/**
+ * Looks up the number of times a check-out has been renewed.
+ * 
+ * @param int $cid
+ *   A Circulation ID
+ * @return int 
+ *   An integer number of rewnewals
+ */
 function _circulation_get_renewals( $cid ) {
   return db_result( db_query( "SELECT `renewals` FROM {circulation} WHERE `cid` = %d", $cid ) );
 }
 
+/**
+ * Gets the Node ID of an item from a given circulation ID
+ * 
+ * @param int $cid
+ * @return int
+ *   Node ID of checked-out item associated with Circulation ID 
+ */
 function _circulation_get_nid( $cid ) {
   return db_result( db_query( "SELECT `nid` FROM {circulation} WHERE `cid` = %d", $cid ) );
 }
 
+/**
+ * Gets the circulation ID for a given item that is cheked out.
+ * 
+ * @param int $nid
+ *   Node ID for a borrowable item
+ * @return int
+ *   Circulation ID as an integer.  Will return <null> if item is not checked out.
+ */
 function _circulation_get_cid( $nid ) {
   return db_result( db_query( "SELECT `cid` FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL ORDER BY `cid` DESC LIMIT 1", $nid ) );
 }
 
+/**
+ * Counts total number of currently checked-out items in the circulation table
+ * 
+ * @param int $nid
+ *   node id for a given item
+ * @return 
+ *   integer value 
+ */
 function _circulation_count_checkouts_by_nid( $nid ) {
   return db_result( db_query( "SELECT COUNT(*) FROM {circulation} WHERE `nid` = %d AND `checkin` IS NULL", $nid ) );
 }
 
+/**
+ * Gets due date for a checked-out item
+ * 
+ * @param int $cid
+ *   Circulation ID
+ * @return timestamp
+ *   Unix TIMESTAMP due date 
+ */
 function _circulation_get_due_date( $cid ) {
   return db_result( db_query( "SELECT `due` FROM {circulation} WHERE `cid` = %d", $cid ) );
 }
